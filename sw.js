@@ -1,5 +1,5 @@
 const CACHE = "talhoes-cache-v2";
-const ARQUIVOS = ["./", "./index.html", "./manifest.json, "./icone-192.png", "./icone-512.png"];
+const ARQUIVOS = ["./", "./index.html", "./manifest.json", "./icone-192.png", "./icone-512.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ARQUIVOS)));
