@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Talhões</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        body{
+            font-family: Arial, Sans-Serif;
+            font-size: 18px;
+            max-width: 600px;
+            margin:0 auto;
+            padding: 16px;
+            background: #f5f5f0;
+            color: #222;
+        }
+        input{
+            width: 100%;
+            font-size: 16px;
+            padding: 10px;
+            box-sizing: border-box;
+            border:1px solid #aaa;
+            border-radius: 6px;
+        }
+        button{
+            font-size: 18px;
+            padding: 12px 20px;
+            background: #2e7d32;
+            color: white;
+            border: none;
+            border-radius: 6px;
+        }
+        #lista p{
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+        }
+        .btn-apagar {
+            background: #c62828;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .btn-apagar:hover {
+            background: #b71c1c;
+        }
+        .nome-talhao {
+            font-weight: 650;
+            color: #1b5e20
+        }
+        #fundo-confirmacao {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+        #caixa-confirmacao {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 320px;
+            text-align: center;
+        }
+        .btn-cancelar {
+            background: #757575;
+            margin: 8px;
+        }
+    </style>
+</head>
+<body>
+<h1>Calculadora de Talhões</h1>
+
+<p>Nome do talhão:</p>
+<input type="text" id="nome">
+
+<p>Área (ha): </p>
+<input type="number" id="area">
+
+<p>Preço da saca (R$):</p>
+<input type="number" id="preco">
+
+<p>Custo total (R$):</p>
+<input type="number" id="custo">
+
+<p>Sacas colhidas: </p>
+<input type="number" id="sacas">
+
+<br><br>
+<button onclick="cadastrar()">Adicionar Talhão</button>
+
+<h2>Cadastrados</h2>
+<div id="lista"></div>
+<div id="fundo-confirmacao">
+    <div id="caixa-confirmacao">
+        <p>Apagar este talhão?</p>
+        <button class="btn-cancelar" onclick="fecharConfirmacao()">Cancelar</button>
+        <button class="btn-apagar" onclick="confirmarApagar()">Apagar</button>
+    </div>
+</div>
+<script>
+    let talhoes = JSON.parse(localStorage.getItem("talhoes")) || [];
+
+    function salvar() {
+            localStorage.setItem("talhoes", JSON.stringify(talhoes));
+        }
+
+    function cadastrar() {
+        let talhao = {
+            id: Date.now(),
+            nome: document.getElementById("nome").value,
+            area: parseFloat(document.getElementById("area").value),
+            preco: parseFloat(document.getElementById("preco").value),
+            custo: parseFloat(document.getElementById("custo").value),
+            sacas: parseFloat(document.getElementById("sacas").value)
+        };
+        if (talhao.nome === "" || isNaN(talhao.area) || isNaN(talhao.preco) ||
+            isNaN(talhao.custo) || isNaN(talhao.sacas) ||
+            talhao.area <= 0 || talhao.sacas <= 0) {
+            alert("Preencha todos os campos com números válidos.");
+            return
+        }
+        talhoes.push(talhao);
+        salvar()
+        mostrar();
+
+        document.getElementById("nome").value = "";
+        document.getElementById("area").value = "";
+        document.getElementById("preco").value = "";
+        document.getElementById("custo").value = "";
+        document.getElementById("sacas").value = "";
+        document.getElementById("nome").focus();
+    }
+    let idParaApagar = null;
+
+    function apagar(id){
+        idParaApagar = id;
+        document.getElementById("fundo-confirmacao").style.display = "flex";
+    }
+    function fecharConfirmacao(){
+        idParaApagar = null;
+        document.getElementById("fundo-confirmacao").style.display = "none";
+    }
+    function confirmarApagar() {
+        talhoes = talhoes.filter(t => t.id !== idParaApagar);
+        salvar();
+        mostrar();
+         fecharConfirmacao();
+    }
+    function formatar(valor, casas = 2) {
+        return valor.toLocaleString("pt-BR", {
+            minimumFractionDigits: casas,
+            maximumFractionDigits: casas
+        });
+    }
+
+    function mostrar() {
+        let html = ""
+        let lucroFazenda = 0
+
+        for (const t of talhoes) {
+            let sacasHa = t.sacas / t.area
+            let custoSaca = t.custo / t.sacas
+            let lucro = (t.preco - custoSaca) * t.sacas;
+            lucroFazenda = lucroFazenda + lucro;
+
+            html += '<p><span class="nome-talhao">' + t.nome + "</span>: " + formatar(sacasHa, 2) +
+                " sacas/ha, custo por saca R$ " + formatar(custoSaca) +
+                 ", lucro R$ " + formatar(lucro) +
+                ' <button class="btn-apagar" onclick="apagar(' + t.id + ')">Apagar</button></p>';
+        }
+        html += "<h3>Lucro da Fazenda: R$ " + formatar(lucroFazenda) + "</h3>";
+        document.getElementById("lista").innerHTML = html;
+    }
+    mostrar();
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register("sw.js")
+            .then(() => console.log('Service worker registrado!'))
+        .catch(err => console.log("Erro ao registrar o Service worker:", err));
+
+    }
+</script>
+</body>
+</html>
